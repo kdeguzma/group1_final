@@ -4,9 +4,8 @@
   <version>0.0.1</version>
   <description>Metapackage for the Final Project (Search and Rescue).
   </description>
-  <maintainer email="zeidk@umd.edu">Zeid Kootbally</maintainer>
-  <maintainer email="zeidk@umd.edu">Zeid Kootbally</maintainer>
-  <maintainer email="zeidk@umd.edu">Zeid Kootbally</maintainer>
+  <maintainer email="kdeguzma@umd.edu">Kyle DeGuzman</maintainer>
+  <maintainer email="ssnelson@umd.edu">Stephen Snelson</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -40,8 +39,8 @@
   <exec_depend>rosbot_utils</exec_depend>
 
   <!-- add your two packages here -->
-  <!-- <exec_depend>group<N>_final_interfaces</exec_depend>
-  <exec_depend>group<N>_final</exec_depend> -->
+  <exec_depend>group1_final_interfaces</exec_depend>
+  <exec_depend>group1_final</exec_depend> 
 
   <export>
     <build_type>ament_cmake</build_type>
