@@ -1,25 +1,26 @@
-# Import the .srv file.
-from group1_final_interfaces import DetectSurvivor
-from rclpy.node import Node
+import rclpy
 
-# Import the main file.
-# from scripts.main_search_and_rescue import SearchAndRescue
+# Import the .srv file.
+from group1_final_interfaces.srv import DetectSurvivor
+from rclpy.node import Node
 
 
 class DetectSurvivorServer(Node):
-    def __init__(self, node_name: str) -> None:
+    def __init__(self) -> None:
         # Initialize the node using node_name from the main file.
-        super().__init__(node_name)
+        super().__init__("detect_survivor_server")
         # Maintain a hardcoded dict mapping zone IDs to survivor locations.
         self.SURVIVORS = {
             "zone_a": (-2.5, 3.2),
             "zone_c": (4.1, -2.5),
         }
+        # Create the service.
         self.srv = self.create_service(
             DetectSurvivor,  # Advertise the service from the .srv file.
             "detect_survivor",  # The service name to be used for the client.
             self.detect_survivor_callback,  # Callback function defined later.
         )
+        # Log the following message to the terminal.
         self.get_logger().info("DetectSurvivor service ready.")
 
     def detect_survivor_callback(self, request, response):
@@ -30,13 +31,23 @@ class DetectSurvivorServer(Node):
         if zone_id in self.SURVIVORS:
             x, y = self.SURVIVORS[zone_id]
             response.found = True
-            response.x = x
-            response.y = y
-            self.get_logger().info(
-                f"Detection request for {zone_id}: FOUND at ({response.x, response.y})"
-            )
+            # Set the response fields from the .srv file.
+            response.survivor_x = x
+            response.survivor_y = y
+            self.get_logger().info(f"Detection request for {zone_id}: FOUND at ({x, y})")
         # Otherwise, return False and log the appropriate message.
         else:
             response.found = False
             self.get_logger().info(f"Detection request for {zone_id}: NOT FOUND")
         return response
+
+
+# Temporary main function for debugging.
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = DetectSurvivorServer()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
