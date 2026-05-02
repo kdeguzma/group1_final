@@ -164,7 +164,10 @@ class NavigateToBase(py_trees.behaviour.Behaviour):
         self._status = None
 
 
-class DetectSurvivor(py_trees.behaviour.Behaviour):
+# NOTE: This class had to be renamed from DetectSurvivor to DetectSurvivorAction because it
+# shared the same name with the .srv file from group1_final_interfaces. This was necessary to
+# prevent it from redefining that and making things confusing.
+class DetectSurvivorAction(py_trees.behaviour.Behaviour):
     def __init__(self, name, zone_manager: ZoneManager):
         super().__init__(name)
         self.zone_manager = zone_manager
@@ -183,27 +186,27 @@ class DetectSurvivor(py_trees.behaviour.Behaviour):
         # Create a client by calling the DetectSurvivor.srv file.
         self.client = self.node.create_client(DetectSurvivor, "detect_survivor")
 
-    def update(self):
+    def update(self) -> py_trees.common.Status:
         # Start the service call.
         if self.future is None:
-            if not self.client.service_is_ready():
-                self.logger.info("Waiting for detector_survivor service...")
+            if not self.client.wait_for_service(timeout_sec=1.0):
+                self.logger.info("Waiting for detect_survivor service...")
                 return py_trees.common.Status.RUNNING
 
             req = DetectSurvivor.Request()
-            # Call the detect_survivor service with the current zone ID.
+            # Call the detect_survivor .srv with the current zone ID.
             # The function in ZoneManager is current_zone and is a dictionary of (id, x, y, yaw).
             req.zone_id = self.zone_manager.current_zone()["id"]
 
             self.future = self.client.call_async(req)
             return py_trees.common.Status.RUNNING
 
-        # Wait for completion.
+        # Wait for completion, then store the pose and set the found result.
         if self.future.done():
             try:
                 result = self.future.result()
                 self._found = result.found
-                self._pose = (result.x, result.y)
+                self._pose = (result.survivor_x, result.survivor_y)
 
                 self.future = None
                 # Return SUCCESS when the service call completes.

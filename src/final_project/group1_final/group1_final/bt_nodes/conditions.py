@@ -1,5 +1,5 @@
 import py_trees
-from .actions import DetectSurvivor
+from .actions import DetectSurvivorAction
 from zone_manager import ZoneManager
 
 
@@ -23,7 +23,8 @@ class ZonesRemaining(py_trees.behaviour.Behaviour):
         Returns:
             py_trees.common.Status: SUCCESS if there are remaining zones.
         '''
-        # If there are remaining zones, return SUCCESS.
+        # If there are remaining zones, return SUCCESS. self.logger() and not self.get_logger()
+        # must be used since these are BT nodes!
         if self.zone_manager.has_remaining():
             self.logger.debug("Zones remaining: SUCCESS")
             return py_trees.common.Status.SUCCESS
@@ -35,7 +36,7 @@ class ZonesRemaining(py_trees.behaviour.Behaviour):
 
 class IsSurvivorDetected(py_trees.behaviour.Behaviour):
     '''Class to detect if there are any survivors.'''
-    def __init__(self, name: str, detect_node: DetectSurvivor) -> None:
+    def __init__(self, name: str, detect_node: DetectSurvivorAction) -> None:
         '''Initializer function for this class.
         
         Args:
@@ -48,15 +49,17 @@ class IsSurvivorDetected(py_trees.behaviour.Behaviour):
         self.detect_node = detect_node
 
     def update(self) -> py_trees.common.Status:
-        '''Function to check if a survivor was found based on DetectSurvivor.
+        '''Function to check if a survivor was found based on DetectSurvivorAction.
         
         Returns:
             py_trees.common.Status: SUCCESS if a survivor was detected, FAILURE
             otherwise.
         '''
+        # If a survivor was found, return SUCCESS.
         if self.detect_node.was_found():
             self.logger.info(f"{self.name}: Survivor was detected.")
             return py_trees.common.Status.SUCCESS
+        # Otherwise, return FAILURE.
         else:
             self.logger.info(f"{self.name}: No survivor detected.")
             return py_trees.common.Status.FAILURE
