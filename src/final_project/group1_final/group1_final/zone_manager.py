@@ -1,25 +1,25 @@
 class ZoneManager:
     def __init__(
         self,
-        zones: list[dict[float, tuple[str, float, float, float]]],
-        base_station: dict[float, tuple[str, float, float, float]],
+        zones: list[dict[str, float | str]],
+        base_station: dict[str, float],
     ) -> None:
         """Initialize with zone list and base station pose.
 
         Args:
-            zones (list[dict[float, tuple[str, float, float, float]]]): The list of zones.
-            base_station (dict[float, tuple[str, float, float, float]]): The robot's pose at the base station.
+            zones (list[dict[]]): The list of zones.
+            base_station (dict[]]): The robot's pose at the base station.
         """
-        self.zones = zones
+        self.zones: list[dict[str, float | str]] = zones
         self.index = 0
-        self.base = base_station
+        self.base: dict[str, float] = base_station
         self.survivor_count = 0
 
-    def current_zone(self) -> dict[float, tuple[str, float, float, float]]:
+    def current_zone(self) -> dict[str, float | str]:
         """Return the current zone dict (id, x, y, yaw).
 
         Returns:
-            dict[float, tuple[str, float, float, float]]: A dictionary of the current zone.
+            dict[str, float | str]: A dictionary of the current zone.
         """
         return self.zones[self.index]
 
@@ -35,11 +35,11 @@ class ZoneManager:
         """Move to the next zone."""
         self.index += 1
 
-    def base_pose(self) -> dict[float, tuple[str, float, float, float]]:
+    def base_pose(self) -> dict[str, float]:
         """Return the base station pose dict (x, y, yaw).
 
         Returns:
-            dict[float, tuple[str, float, float, float]]: The base station pose dict.
+            dict[str, float]: The base station pose dict.
         """
         return self.base
 
