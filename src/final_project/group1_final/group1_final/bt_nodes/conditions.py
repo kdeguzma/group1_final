@@ -18,7 +18,7 @@ class ZonesRemaining(py_trees.behaviour.Behaviour):
         # Set the node name.
         super().__init__(name)
         # Store the shared mission state.
-        self.zone_manager = zone_manager
+        self._zone_manager = zone_manager
 
     def update(self) -> Status:
         """Function to check the remaining state for the zone_manager.
@@ -27,14 +27,8 @@ class ZonesRemaining(py_trees.behaviour.Behaviour):
             Status: SUCCESS if there are remaining zones.
         """
         # If there are remaining zones, return SUCCESS. self.logger() and not self.get_logger()
-        # must be used since these are BT nodes!
-        if self.zone_manager.has_remaining():
-            self.logger.debug("Zones remaining: SUCCESS")
-            return Status.SUCCESS
-        # Otherwise, return FAILURE.
-        else:
-            self.logger.debug("Zones remaining: FAILURE")
-            return Status.FAILURE
+        # must be used since these are BT nodes! # Otherwise, return FAILURE.
+        return Status.SUCCESS if self._zone_manager.has_remaining() else Status.FAILURE
 
 
 class IsSurvivorDetected(py_trees.behaviour.Behaviour):
@@ -50,7 +44,7 @@ class IsSurvivorDetected(py_trees.behaviour.Behaviour):
         # Set the node name.
         super().__init__(name)
         # Hold a reference to the DetectSurvivor action node.
-        self.detect_node = detect_node
+        self._detect_node = detect_node
 
     def update(self) -> Status:
         """Function to check if a survivor was found based on DetectSurvivorAction.
@@ -59,11 +53,5 @@ class IsSurvivorDetected(py_trees.behaviour.Behaviour):
             Status: SUCCESS if a survivor was detected, FAILURE
             otherwise.
         """
-        # If a survivor was found, return SUCCESS.
-        if self.detect_node.was_found():
-            self.logger.info(f"{self.name}: Survivor was detected.")
-            return Status.SUCCESS
-        # Otherwise, return FAILURE.
-        else:
-            self.logger.info(f"{self.name}: No survivor detected.")
-            return Status.FAILURE
+        # If a survivor was found, return SUCCESS. Otherwise, return FAILURE.
+        return Status.SUCCESS if self._detect_node.was_found() else Status.FAILURE

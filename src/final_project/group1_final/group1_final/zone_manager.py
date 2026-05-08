@@ -1,4 +1,13 @@
+# ENPM605 - RO01
+# Group Final Project - Group 1
+# Kyle DeGuzman: 120452062
+# Stephen Snelson: 12254074
+# zone_manager.py - Class for the search zones and base pose.
+
+
 class ZoneManager:
+    """Plain Python class for list of search zones and base station pose."""
+
     def __init__(
         self,
         zones: list[dict[str, float | str]],
@@ -31,7 +40,7 @@ class ZoneManager:
         Returns:
             dict[str, float]: A copy of the base station pose dict {x, y, yaw}.
         """
-        # A copy is needed, otherwise BT nodes can corrupt the shared mission state.
+        # A copy is needed, otherwise BT nodes can corrupt the shared state.
         return self._base_station.copy()
 
     def current_index(self) -> int:
@@ -46,12 +55,13 @@ class ZoneManager:
         """Return the current zone dict (id, x, y, yaw).
 
         Returns:
-            dict[str, float | str]: A dictionary of the current zone {id, x, y, yaw}.
+            dict[str, float | str]: A copy of the dict of the current zone {id, x, y, yaw}.
         """
         # Raise an error if there are no zones left.
         if not self.has_remaining():
             raise IndexError("No remaining zones")
-        return self._zones[self._index]
+        # A copy is needed, otherwise BT nodes can corrupt the shared state.
+        return self._zones[self._index].copy()
 
     def has_remaining(self) -> bool:
         """True if there are unvisited zones.
