@@ -12,6 +12,29 @@ from group1_final.zone_manager import ZoneManager
 from group1_final.bt_nodes.actions import NavigateToZone, NavigateToBase, DetectSurvivorAction,AdvanceZone,LogNoDetection,BroadcastSurvivorTF,NotifyBase
 from group1_final.bt_nodes.conditions import IsSurvivorDetected, ZonesRemaining
 
+def _seed_amcl_and_wait_for_nav2() -> None:
+    """Publish initialpose and block until Nav2 is ACtive."""
+    #Seed AMCL with the robot's known spawn pose and wait for Nav2
+    navigator = BasicNavigator()
+
+    navigator.set_parameters([Parameter("use_sim_time", Parameter.Type.BOOL, True)])
+
+    initial_pose = PoseStamped()
+    initial_pose.header.frame_id = "map"
+    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+    initial_pose.pose.position.x = 0.0
+    initial_pose.pose.position.y = 0.0
+    initial_pose.pose.orientation.w = 1.0
+
+    navigator.get_logger().info("Seeding AMCL with initial pose...")
+    navigator.setInitialPose(initial_pose)
+
+    navigator.get_logger().info("Waiting for Nav2 to become active...")
+    navigator.waitUntilNav2Active()
+
+    navigator.get_logger().info("Nav2 is active.")
+    navigator.destroy_node()
+
 
 def main():
     # Initialise the ROS 2 client library (creates the global context)
@@ -52,26 +75,7 @@ def main():
     # create zone manager    
     zone_manager =ZoneManager(zones = zones,base_station = base_station)
     
-    #Seed AMCL with the robot's known spawn pose and wait for Nav2
-    navigator = BasicNavigator()
-
-    navigator.set_parameters([Parameter("use_sim_time", Parameter.Type.BOOL, True)])
-
-    initial_pose = PoseStamped()
-    initial_pose.header.frame_id = "map"
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.0
-    initial_pose.pose.position.y = 0.0
-    initial_pose.pose.orientation.w = 1.0
-
-    navigator.get_logger().info("Seeding AMCL with initial pose...")
-    navigator.setInitialPose(initial_pose)
-
-    navigator.get_logger().info("Waiting for Nav2 to become active...")
-    navigator.waitUntilNav2Active()
-
-    navigator.get_logger().info("Nav2 is active.")
-    navigator.destroy_node()   
+    _seed_amcl_and_wait_for_nav2()
     
     # ------Behavior Tree Setup-------------
     # initial root selector -> if all zones visited, send to NavToBase
