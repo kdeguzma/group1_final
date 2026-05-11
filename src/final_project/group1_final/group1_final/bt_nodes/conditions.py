@@ -1,6 +1,6 @@
 import py_trees
 from py_trees.common import Status
-from zone_manager import ZoneManager
+from group1_final.zone_manager import ZoneManager
 
 from .actions import DetectSurvivorAction
 

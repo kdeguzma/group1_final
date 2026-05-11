@@ -6,14 +6,14 @@ from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PointStamped, TransformStamped
 
 # Import the .srv files.
-from group1_final_interfaces import DetectSurvivor, ReportSurvivor
+from group1_final_interfaces.srv import DetectSurvivor, ReportSurvivor
 from nav2_msgs.action import NavigateToPose
 from py_trees.common import Status
 from rclpy.action import ActionClient
-from rclpy.tasks import Future
+from rclpy.task import Future
 
 # Import the ZoneManager class from zone_manager.py
-from zone_manager import ZoneManager
+from group1_final.zone_manager import ZoneManager
 
 
 class NavigateToZone(py_trees.behaviour.Behaviour):
@@ -37,6 +37,8 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         self._goal_handle = None
         self._status = None
         self._goal_sent: bool = False
+        self._current_goal = None
+        self._zone_int = {"zone_a":1,"zone_b":2,"zone_c":3,"zone_d":4}
 
     def setup(self, **kwargs) -> None:
         """Function to extract the ROS node from the BT setup kwargs.
@@ -80,6 +82,10 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         yaw = float(pose_dict["yaw"])
         goal_msg.pose.pose.orientation.z = math.sin(yaw / 2.0)
         goal_msg.pose.pose.orientation.w = math.cos(yaw / 2.0)
+                
+        #Logger statement to output current goal/step
+        self._current_goal = pose_dict["id"]
+        self.logger.info(f"--- Zone {self._zone_int[self._current_goal]}/4: {self._current_goal} ({pose_dict["x"]},{pose_dict["y"]})---")
 
         # Send the goal asynchronously and handle the result in the callback.
         future = self._client.send_goal_async(goal_msg)
@@ -102,6 +108,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
             # Then return RUNNING for the status.
             self._send_goal(self._zone_manager.current_zone())
             self._goal_sent = True
+            
             return Status.RUNNING
 
         # If the status is still None, set it as RUNNING.
@@ -125,6 +132,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
             self._status = Status.FAILURE
             return
         # Use an Asynchronous call for the goal handle and store it. Then call _result_callback.
+        self.logger.info(f"Navigating to {self._current_goal}")
         result_future = self._goal_handle.get_result_async()
         result_future.add_done_callback(self._result_callback)
 
@@ -140,6 +148,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         # as SUCCESS. Otherwise, set it as FAILURE.
         if status == GoalStatus.STATUS_SUCCEEDED:
             self._status = Status.SUCCESS
+            self.logger.info(f"Reached {self._current_goal}")
         else:
             self._status = Status.FAILURE
 
@@ -317,6 +326,7 @@ class DetectSurvivorAction(py_trees.behaviour.Behaviour):
             except Exception as e:
                 self.logger.error(f"Service call failed: {e}")
                 return Status.FAILURE
+            
         # Return RUNNING as the status otherwise.
         return Status.RUNNING
 
