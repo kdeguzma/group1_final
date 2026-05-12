@@ -1,3 +1,9 @@
+# ENPM605 - RO01
+# Group Final Project - Group 1
+# Kyle DeGuzman: 120452062
+# Stephen Snelson: 12254074
+# search_and_rescue.launch.py - the entry point for the mission, brings up Nav2, servers, and bt node.
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -21,19 +27,16 @@ def generate_launch_description():
         default_value="true",
         description="Start RViz with the package's nav2 view.",
     )
-    
+
     tick_rate_arg = DeclareLaunchArgument(
-        "tick_rate_hz",
-        default_value="2.0",
-        description="Tick Rate of Behavior Tree in Hz."        
-        )
-    
+        "tick_rate_hz", default_value="2.0", description="Tick Rate of Behavior Tree in Hz."
+    )
 
     # --- Nav2 bringup, adapted from map_nav.launch.py ---
     # Pass launch_arguments as a list of tuples (NOT dict.items())
     # so each value's static type is narrowed independently.
     nav2_share = get_package_share_directory("nav2_bringup")
-    nav2_launch = os.path.join(nav2_share, "launch", "bringup_launch.py")    
+    nav2_launch = os.path.join(nav2_share, "launch", "bringup_launch.py")
     nav2_bringup = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch),
         launch_arguments=[
@@ -51,8 +54,7 @@ def generate_launch_description():
         name="search_and_rescue",
         output="screen",
         emulate_tty=True,
-        parameters=[mission_params,{"tick_rate_hz":
-            LaunchConfiguration("tick_rate_hz")}],
+        parameters=[mission_params, {"tick_rate_hz": LaunchConfiguration("tick_rate_hz")}],
     )
 
     # --- simulated service servers ---
@@ -81,7 +83,6 @@ def generate_launch_description():
         emulate_tty=True,
         condition=IfCondition(LaunchConfiguration("rviz")),
     )
-    
 
     return LaunchDescription(
         [
@@ -90,7 +91,7 @@ def generate_launch_description():
             nav2_bringup,
             rviz_node,
             detect_server,
-            report_server,            
+            report_server,
             bt_node,
         ]
     )

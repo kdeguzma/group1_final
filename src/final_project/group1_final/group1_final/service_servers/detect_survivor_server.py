@@ -1,3 +1,9 @@
+# ENPM605 - RO01
+# Group Final Project - Group 1
+# Kyle DeGuzman: 120452062
+# Stephen Snelson: 12254074
+# detect_survivor_server.py - advertise the service and detemrine survivor locations.
+
 import rclpy
 
 # Import the .srv file.

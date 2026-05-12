@@ -1,20 +1,33 @@
-import rclpy
-from rclpy.node import Node
-from rclpy.parameter import Parameter
+# ENPM605 - RO01
+# Group Final Project - Group 1
+# Kyle DeGuzman: 120452062
+# Stephen Snelson: 12254074
+# main_search_and_rescue.py - code for the full behavior tree.
 
 import py_trees
 import py_trees_ros
-
+import rclpy
 from geometry_msgs.msg import PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator
+from rclpy.node import Node
+from rclpy.parameter import Parameter
 
-from group1_final.zone_manager import ZoneManager
-from group1_final.bt_nodes.actions import NavigateToZone, NavigateToBase, DetectSurvivorAction,AdvanceZone,LogNoDetection,BroadcastSurvivorTF,NotifyBase
+from group1_final.bt_nodes.actions import (
+    AdvanceZone,
+    BroadcastSurvivorTF,
+    DetectSurvivorAction,
+    LogNoDetection,
+    NavigateToBase,
+    NavigateToZone,
+    NotifyBase,
+)
 from group1_final.bt_nodes.conditions import IsSurvivorDetected, ZonesRemaining
+from group1_final.zone_manager import ZoneManager
+
 
 def _seed_amcl_and_wait_for_nav2() -> None:
-    """Publish initialpose and block until Nav2 is ACtive."""
-    #Seed AMCL with the robot's known spawn pose and wait for Nav2
+    """Publish initial pose and block until Nav2 is Active."""
+    # Seed AMCL with the robot's known spawn pose and wait for Nav2
     navigator = BasicNavigator()
 
     navigator.set_parameters([Parameter("use_sim_time", Parameter.Type.BOOL, True)])
@@ -26,123 +39,141 @@ def _seed_amcl_and_wait_for_nav2() -> None:
     initial_pose.pose.position.y = 0.0
     initial_pose.pose.orientation.w = 1.0
 
-    navigator.get_logger().info("Seeding AMCL with initial pose...")
+    navigator.get_logger().info("Seeding AMCL with initial pose (0.00, 0.00, yaw=0.00)...")
     navigator.setInitialPose(initial_pose)
 
-    navigator.get_logger().info("Waiting for Nav2 to become active...")
+    navigator.get_logger().info("Waiting for Nav2 (AMCL + BT navigator) to become active...")
     navigator.waitUntilNav2Active()
 
     navigator.get_logger().info("Nav2 is active.")
     navigator.destroy_node()
 
 
-def main():
+def main() -> None:
+    """Main function to call the actions.py and conditions.py nodes from bt_nodes/."""
     # Initialise the ROS 2 client library (creates the global context)
     rclpy.init()
 
     # Use node to import parameters
-    
-    node = Node("search_and_rescue",
-                automatically_declare_parameters_from_overrides=True,
-                allow_undeclared_parameters=True)
-    
+
+    node = Node(
+        "search_and_rescue",
+        automatically_declare_parameters_from_overrides=True,
+        allow_undeclared_parameters=True,
+    )
+
+    if not node.has_parameter("zone_order"):
+        raise RuntimeError("mission_params.yaml failed to load")
     # Create zone information data structures to pass to zone_manager
-    
-    zone_order = (node.get_parameter("zone_order")
-                  .get_parameter_value()
-                  .string_array_value)
-    
+    zone_order = node.get_parameter("zone_order").get_parameter_value().string_array_value
+
     zones = []
     for zone_id in zone_order:
         zones.append(
             {
-                "id":zone_id,
-                "x":node.get_parameter(f"zones.{zone_id}.x").value,
-                "y":node.get_parameter(f"zones.{zone_id}.y").value,
-                "yaw":node.get_parameter(f"zones.{zone_id}.yaw").value,
+                "id": zone_id,
+                "x": node.get_parameter(f"zones.{zone_id}.x").value,
+                "y": node.get_parameter(f"zones.{zone_id}.y").value,
+                "yaw": node.get_parameter(f"zones.{zone_id}.yaw").value,
             }
         )
-    node.get_logger().info(f"Loaded :{len(zones)} serach zones from parameters")
-    
+    node.get_logger().info(f"Loaded {len(zones)} search zones from parameters")
+
     base_station = {
-        "x":node.get_parameter("base_station.x").value,
-        "y":node.get_parameter("base_station.y").value,
-        "yaw":node.get_parameter("base_station.yaw").value
+        "x": node.get_parameter("base_station.x").value,
+        "y": node.get_parameter("base_station.y").value,
+        "yaw": node.get_parameter("base_station.yaw").value,
     }
-    
-    tick_rate = node.get_parameter("tick_rate_hz").value  
-    
-    # create zone manager    
-    zone_manager =ZoneManager(zones = zones,base_station = base_station)
-    
+
+    # Log a message for the base station.
+    node.get_logger().info(
+        f"Base station at "
+        f"({base_station['x']:.2f}), "
+        f"{base_station['y']:.2f}, "
+        f"yaw={base_station['yaw']:.2f}."
+    )
+
+    tick_rate = node.get_parameter("tick_rate_hz").value
+
+    # create zone manager
+    zone_manager = ZoneManager(zones=zones, base_station=base_station)
+
     _seed_amcl_and_wait_for_nav2()
-    
-    # ------Behavior Tree Setup-------------
+
+    # Behavior Tree Setup
     # initial root selector -> if all zones visited, send to NavToBase
-    root = py_trees.composites.Selector(name='root', memory=False)
-    
+    root = py_trees.composites.Selector(name="root", memory=False)
+
     # navigate to base action (done after all zones visited)
-    navigate_to_base = NavigateToBase(name='Mission Complete',zone_manager=zone_manager)
-    
-    # Wrap nav to base in a oneshot decorator so program ends 
-    # after reaching base    
+    navigate_to_base = NavigateToBase(name="Mission Complete", zone_manager=zone_manager)
+
+    # Wrap nav to base in a oneshot decorator so program ends
+    # after reaching base
     navigate_to_base_oneshot = py_trees.decorators.OneShot(
-    name="NavigateToBaseOneShot", child=navigate_to_base,
-    policy=py_trees.common.OneShotPolicy.ON_COMPLETION)
-    
+        name="NavigateToBaseOneShot",
+        child=navigate_to_base,
+        policy=py_trees.common.OneShotPolicy.ON_COMPLETION,
+    )
+
     # Patrol Sequence Node --Condition Zone Remaining--> Zones Remaining, NavToZone,DetectSurvivor,HandleDetection,AdvanceZone
-    patrol = py_trees.composites.Sequence(name = 'Patrol',memory=True)
-    
+    patrol = py_trees.composites.Sequence(name="Patrol", memory=True)
+
     # Zones remaining condition --> evaluates if all zones have been visited
-    zones_remaining = ZonesRemaining(name="Zones Remaining",zone_manager=zone_manager)
-    
+    zones_remaining = ZonesRemaining(name="Zones Remaining", zone_manager=zone_manager)
+
     # Navigate to Zone Action -> navigate to unvisited zone
-    navigate_to_zone = NavigateToZone(name="Navigate to Zone",zone_manager=zone_manager)
-    
+    navigate_to_zone = NavigateToZone(name="Navigate to Zone", zone_manager=zone_manager)
+
     # Detect Survivor Action -> looks for survivors at visited zone
-    detect_survivor = DetectSurvivorAction(name="Detect Survivor",zone_manager=zone_manager)
-    
+    detect_survivor = DetectSurvivorAction(name="Detect Survivor", zone_manager=zone_manager)
+
     # Handle Detection Selector ---> Sequence: Survivor Found or Log No Detection Action
-    handle_detection = py_trees.composites.Selector(name="Handle Detection",memory=False)
-    
+    handle_detection = py_trees.composites.Selector(name="Handle Detection", memory=False)
+
     # Advance Zone Action -> passes next goal to robot
-    advance_zone = AdvanceZone(name="Advance Zone",zone_manager=zone_manager)
-    
+    advance_zone = AdvanceZone(name="Advance Zone", zone_manager=zone_manager)
+
     # Log No Detection Action -> No survivors detected at this location
     log_no_detection = LogNoDetection(name="Log No Detection", zone_manager=zone_manager)
-    
-    # Survivor Found Sequence --Condition:IsSurvivorDetector--> BroadcastSurvivorTF, Notify Base    
-    survivor_found = py_trees.composites.Sequence(name="survivor found",memory=True)
-    
+
+    # Survivor Found Sequence, Condition:IsSurvivorDetector -> BroadcastSurvivorTF, Notify Base
+    survivor_found = py_trees.composites.Sequence(name="survivor found", memory=True)
+
     # IsSurvivorDetected Condition -> True if survivor detected, False otherwise
-    is_survivor_detected = IsSurvivorDetected(name="IsSurvivorDetected",detect_node=detect_survivor)
-    
+    is_survivor_detected = IsSurvivorDetected(
+        name="IsSurvivorDetected", detect_node=detect_survivor
+    )
+
     # Broadcast Survivor Action -> alerts if survivor found
-    broadcast_survivor_tf = BroadcastSurvivorTF(name="broadcast survivor",detect_node=detect_survivor, zone_manager=zone_manager)
-    
+    broadcast_survivor_tf = BroadcastSurvivorTF(
+        name="broadcast survivor", detect_node=detect_survivor, zone_manager=zone_manager
+    )
+
     # Notify Base -> Notifies Base of survivor locations
     notify_base = NotifyBase(name="notify_base", detect_node=detect_survivor)
-    
+
     # Add children to Survivor Found Sequence -> Condition:SurvivorDetected, BroadcastSurvivorTF, NotifyBAse
-    survivor_found.add_children([is_survivor_detected,broadcast_survivor_tf,notify_base])
-    
-    # Add Children to Handle Detection Selector-> Sequence:Survivor Found, LogNoDetection   
-    handle_detection.add_children([survivor_found,log_no_detection])
-    
+    survivor_found.add_children([is_survivor_detected, broadcast_survivor_tf, notify_base])
+
+    # Add Children to Handle Detection Selector-> Sequence:Survivor Found, LogNoDetection
+    handle_detection.add_children([survivor_found, log_no_detection])
+
     # Add children Patrol Sequence -> Condition: ZonesRemainaing, NavToZone,DetectSurvivor,HandleDetection:Selector,AdvZone
-    patrol.add_children([zones_remaining, navigate_to_zone, detect_survivor, handle_detection, advance_zone])
-    
+    patrol.add_children(
+        [zones_remaining, navigate_to_zone, detect_survivor, handle_detection, advance_zone]
+    )
+
     # Add children to Root Selector -> Sequence:Patrol, NavtoBase
-    root.add_children([patrol,navigate_to_base_oneshot])    
-    
+    root.add_children([patrol, navigate_to_base_oneshot])
+
     # Wrap the py_trees in the ros py_trees
     tree = py_trees_ros.trees.BehaviourTree(root=root)
     tree.setup(node=node)
-    
+
     # Start periodic timer
-    period_ms = int(1000/tick_rate)
+    period_ms = int(1000 / tick_rate)
     tree.tick_tock(period_ms=period_ms)
-    
+
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -152,6 +183,7 @@ def main():
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
 
 if __name__ == "__main__":
     main()
