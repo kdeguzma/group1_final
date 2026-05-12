@@ -35,7 +35,7 @@ def generate_launch_description():
     nav2_share = get_package_share_directory("nav2_bringup")
     nav2_launch = os.path.join(nav2_share, "launch", "bringup_launch.py")    
     nav2_bringup = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(nav2_launch),  # nav2_bringup launch
+        PythonLaunchDescriptionSource(nav2_launch),
         launch_arguments=[
             ("map", map_file),
             ("params_file", nav2_params),

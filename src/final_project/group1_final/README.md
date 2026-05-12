@@ -13,6 +13,5 @@ Memory = True is used when you want the Behavior Tree node to remember which chi
 
 Memory = False is used when the Behavior Tree node should reevalauate the status of child nodes for each tick. This makes sense for the Root Selector and the Handle Detection Selector. The Root Selector should reevaluate the underlying conditions/actions and not get "stuck" on child node. The Handle Detection Selector needs to evaluate at each zone if there is a survivor at each zone, rather then remember the status from a previous zone.
 
-
 **OneShot
 The OneShot Decorator is used on the NavigateToBase action to prevent the root selector from constantly sending a goal to Nav2. This way the robot visits each zone, checks for survivors, then returns to base and stays there. The OneShot decorator prevents the Behavior Tree from resending the same Nav2 goal repeatedly.
