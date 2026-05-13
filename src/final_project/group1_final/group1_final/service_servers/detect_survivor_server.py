@@ -12,7 +12,9 @@ from rclpy.node import Node
 
 
 class DetectSurvivorServer(Node):
+    """Node class which will response to the detect server action providing Robot if a survivor is at the location"""
     def __init__(self) -> None:
+        """Initilaize instance of Detect Survivor Server node"""
         # Initialize the node using node_name from the main file.
         super().__init__("detect_survivor_server")
         # Maintain a hardcoded dict mapping zone IDs to survivor locations.
@@ -30,6 +32,7 @@ class DetectSurvivorServer(Node):
         self.get_logger().info("DetectSurvivor service ready.")
 
     def detect_survivor_callback(self, request, response):
+        """Callback to provide information if survivor is in the zone. True if survivor is present"""
         # Call the (string) zone_id from DetectSurvivor.srv.
         zone_id = request.zone_id
         # If the zone_id is in the dict, returns found=True with the survivor's (x, y)

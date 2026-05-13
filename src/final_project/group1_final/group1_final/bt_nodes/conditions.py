@@ -1,3 +1,9 @@
+# ENPM605 - RO01
+# Group Final Project - Group 1
+# Kyle DeGuzman: 120452062
+# Stephen Snelson: 12254074
+# conditions.py - Behavior Tree Conditions nodes
+
 import py_trees
 from py_trees.common import Status
 from group1_final.zone_manager import ZoneManager
