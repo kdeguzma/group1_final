@@ -38,7 +38,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         self._status = None
         self._goal_sent: bool = False
         self._current_goal = None
-        self._zone_int = {"zone_a":1,"zone_b":2,"zone_c":3,"zone_d":4}
+        self._zone_int = {"zone_a": 1, "zone_b": 2, "zone_c": 3, "zone_d": 4}
 
     def setup(self, **kwargs) -> None:
         """Function to extract the ROS node from the BT setup kwargs.
@@ -82,14 +82,18 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         yaw = float(pose_dict["yaw"])
         goal_msg.pose.pose.orientation.z = math.sin(yaw / 2.0)
         goal_msg.pose.pose.orientation.w = math.cos(yaw / 2.0)
-                
-        #Logger statement to output current goal/step
-        
-        self._current_goal = pose_dict.get("id","base")
+
+        # Logger statement to output the current goal/step.
+        self._current_goal = pose_dict["id"]
+
         if self._current_goal != "base":
-            self.logger.info(f"--- Zone {self._zone_int[self._current_goal]}/4: {self._current_goal} ({pose_dict['x']},{pose_dict['y']})---")
+            self.logger.info(
+                f"--- Zone {self._zone_int[self._current_goal]}/4: "
+                f"{self._current_goal} "
+                f"({pose_dict['x']:.2f}, {pose_dict['y']:.2f}) ---"
+            )
         else:
-            self.logger.info(f"All zones visited. Returning to base.")
+            self.logger.info("All zones visited. Returning to base.")
 
         # Send the goal asynchronously and handle the result in the callback.
         future = self._client.send_goal_async(goal_msg)
@@ -112,7 +116,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
             # Then return RUNNING for the status.
             self._send_goal(self._zone_manager.current_zone())
             self._goal_sent = True
-            
+
             return Status.RUNNING
 
         # If the status is still None, set it as RUNNING.
@@ -136,7 +140,8 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
             self._status = Status.FAILURE
             return
         # Use an Asynchronous call for the goal handle and store it. Then call _result_callback.
-        self.logger.info(f"Navigating to {self._current_goal}")
+        # Log a message to the terminal.
+        self.logger.info(f"Navigating to {self._current_goal}...")
         result_future = self._goal_handle.get_result_async()
         result_future.add_done_callback(self._result_callback)
 
@@ -152,7 +157,7 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         # as SUCCESS. Otherwise, set it as FAILURE.
         if status == GoalStatus.STATUS_SUCCEEDED:
             self._status = Status.SUCCESS
-            self.logger.info(f"Reached {self._current_goal}")
+            self.logger.info(f"Reached {self._current_goal}.")
         else:
             self._status = Status.FAILURE
 
@@ -209,17 +214,18 @@ class NavigateToBase(NavigateToZone):
         # Set the status as SUCCESS once the mission is done. Set the
         # _mission_logged flag as True.
         if self._status == Status.SUCCESS and not self._mission_logged:
-            self.logger.info("Mission completed.")
+            self.logger.info("Mission complete.")
             self._mission_logged = True
 
         return self._status
 
     def initialise(self) -> None:
         """Function to reset the state."""
-        # Reset the parent navigation state.
-        super().initialise()
         # Reset the mission logged flag.
         self._mission_logged = False
+        # Reset the parent navigation state if not already completed.
+        if self._status != Status.SUCCESS:
+            super().initialise()
 
 
 # NOTE: This class had to be renamed from DetectSurvivor to DetectSurvivorAction because it
@@ -305,6 +311,8 @@ class DetectSurvivorAction(py_trees.behaviour.Behaviour):
             # is present and returns the position.
             # The function in ZoneManager is current_zone and is a dictionary of (id, x, y, yaw).
             req.zone_id = self._zone_manager.current_zone()["id"]
+            # Log a message to the terminal.
+            self.logger.info(f"Calling detect_survivor for {req.zone_id}...")
             # Store an Asynchronous call of the client for req and return RUNNING as the status.
             self._future = self._client.call_async(req)
             return Status.RUNNING
@@ -330,7 +338,7 @@ class DetectSurvivorAction(py_trees.behaviour.Behaviour):
             except Exception as e:
                 self.logger.error(f"Service call failed: {e}")
                 return Status.FAILURE
-            
+
         # Return RUNNING as the status otherwise.
         return Status.RUNNING
 
@@ -453,7 +461,10 @@ class BroadcastSurvivorTF(py_trees.behaviour.Behaviour):
         # return SUCCESS as the status.
         self._broadcaster.sendTransform(t)
 
-        self.logger.info(f"Published static TF: {t.child_frame_id} at ({x}, {y})")
+        # Log a message to the terminal.
+        self.logger.info(
+            f"Broadcasting TF frame: {t.child_frame_id} at ({x:.2f}, {y:.2f}) in map frame."
+        )
 
         return Status.SUCCESS
 
@@ -553,6 +564,8 @@ class NotifyBase(py_trees.behaviour.Behaviour):
 
             # Set the ReportSurvivor request location with the survivor location.
             req.location = location
+            # Log a message to the terminal.
+            self.logger.info(f"Reporting {survivor_id} to base...")
             # Use an Asynchronous call to send the request to the client. Then set
             # the sent status as True and return RUNNING for the status.
             self._future = self._client.call_async(req)
@@ -579,8 +592,11 @@ class NotifyBase(py_trees.behaviour.Behaviour):
                 self.logger.error("report_survivor returned None")
                 return Status.FAILURE
 
-            return Status.SUCCESS if result.acknowledged else Status.FAILURE
+            if result.acknowledged:
+                self.logger.info(f"Base acknowledged {survivor_id}.")
+                return Status.SUCCESS
 
+            return Status.FAILURE
         # Otherwise, return RUNNING for the status.
         return Status.RUNNING
 
@@ -663,5 +679,5 @@ class LogNoDetection(py_trees.behaviour.Behaviour):
         """
         # Log the information then return SUCCESS as the status.
         zone_id = self._zone_manager.current_zone()["id"]
-        self.logger.info(f"No survivor found in zone {zone_id}.")
+        self.logger.info(f"No survivor found at {zone_id}.")
         return Status.SUCCESS

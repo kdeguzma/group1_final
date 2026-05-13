@@ -1,9 +1,8 @@
-Kyle Contributions:
-
-
+Kyle Contributions: 
+Set up entire project workspace structure and initialized .yaml files and .srv files, as well as package.xml and setup.py Implemented the Detect Survivor Server node for advertising the DetectSurvivor service and determining survivor locations. Implemented conditions.py, actions.py, and zone_manager.py. Did final integration and debugging with all the files.
 
 Stephen Contributions:
-Implemented the Report Survivor Server to to advertice on /report_survivor, log survivor_id, frame_id, and x/y cords. Wrote main search and rescue run file, implementing the BT Tree, the memory flags, and OneShot to patrol zones sequentially. Integrated Nav2 action client, ACML initilization. Wrote Design Explainations. Various Debugging and verifications to meet specificaiton requirements.
+Implemented the Report Survivor Server to advertise on /report_survivor, log survivor_id, frame_id, and x/y cords. Wrote main search and rescue run file, implementing the BT Tree, the memory flags, and OneShot to patrol zones sequentially. Integrated Nav2 action client, ACML initilization. Wrote Design Explainations. Various Debugging and verifications to meet specificaiton requirements.
 
 
 BT Design Explainations:
