@@ -25,11 +25,15 @@ def _seed_amcl_and_wait_for_nav2() -> None:
     initial_pose.pose.position.x = 0.0
     initial_pose.pose.position.y = 0.0
     initial_pose.pose.orientation.w = 1.0
-
-    navigator.get_logger().info("Seeding AMCL with initial pose...")
+    x = initial_pose.pose.position.x
+    y = initial_pose.pose.position.y
+    yaw = initial_pose.pose.orientation.w
+    
+    
+    navigator.get_logger().info(f"Seeding AMCL with initial pose ({x:.2f},{y:.2f}, yaw={yaw:.2f})")
     navigator.setInitialPose(initial_pose)
 
-    navigator.get_logger().info("Waiting for Nav2 to become active...")
+    navigator.get_logger().info("Waiting for Nav2 (AMCL + BT Navigator) to become active...")
     navigator.waitUntilNav2Active()
 
     navigator.get_logger().info("Nav2 is active.")
@@ -37,6 +41,8 @@ def _seed_amcl_and_wait_for_nav2() -> None:
 
 
 def main():
+    """Method to complete search and rescue operations"""
+    
     # Initialise the ROS 2 client library (creates the global context)
     rclpy.init()
 
@@ -90,7 +96,7 @@ def main():
     name="NavigateToBaseOneShot", child=navigate_to_base,
     policy=py_trees.common.OneShotPolicy.ON_COMPLETION)
     
-    # Patrol Sequence Node --Condition Zone Remaining--> Zones Remaining, NavToZone,DetectSurvivor,HandleDetection,AdvanceZone
+    # Patrol Sequence Node --Condition: Zone Remaining--> Zones Remaining, NavToZone,DetectSurvivor,HandleDetection,AdvanceZone
     patrol = py_trees.composites.Sequence(name = 'Patrol',memory=True)
     
     # Zones remaining condition --> evaluates if all zones have been visited

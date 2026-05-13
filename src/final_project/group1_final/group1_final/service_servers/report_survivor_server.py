@@ -28,14 +28,17 @@ class ReportSurvivorServer(Node):
             ReportSurvivor.Response: The populated Report Survivor Response
         """
         
+        #unpack request information
         frame_id = request.location.header.frame_id
         x = request.location.point.x
         y = request.location.point.y
         
+        # alert user if TF is not map frame
         if frame_id != "map":
             self.get_logger().warn(f"Report for {request.survivor_id} used from frame '{frame_id}"
                                    f"expected from 'map'")
         
+        # output to user the report servivor was notified
         self.get_logger().info(f"Report received: {request.survivor_id} at ({x:.2f},{y:.2f} in frame {frame_id}. Acknowledged)")
         
         response.acknowledged = True

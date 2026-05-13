@@ -84,8 +84,12 @@ class NavigateToZone(py_trees.behaviour.Behaviour):
         goal_msg.pose.pose.orientation.w = math.cos(yaw / 2.0)
                 
         #Logger statement to output current goal/step
-        self._current_goal = pose_dict["id"]
-        self.logger.info(f"--- Zone {self._zone_int[self._current_goal]}/4: {self._current_goal} ({pose_dict["x"]},{pose_dict["y"]})---")
+        
+        self._current_goal = pose_dict.get("id","base")
+        if self._current_goal != "base":
+            self.logger.info(f"--- Zone {self._zone_int[self._current_goal]}/4: {self._current_goal} ({pose_dict['x']},{pose_dict['y']})---")
+        else:
+            self.logger.info(f"All zones visited. Returning to base.")
 
         # Send the goal asynchronously and handle the result in the callback.
         future = self._client.send_goal_async(goal_msg)
